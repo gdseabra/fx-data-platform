@@ -61,6 +61,38 @@ services:
       - fx-monitoring
       - fx-network
 
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: fx-postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:postgres@postgres:5432/fx_platform?sslmode=disable"
+    ports:
+      - "9187:9187"
+    restart: unless-stopped
+    networks:
+      - fx-monitoring
+      - fx-network
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.25.0
+    container_name: fx-blackbox-exporter
+    ports:
+      - "9115:9115"
+    restart: unless-stopped
+    networks:
+      - fx-monitoring
+      - fx-network
+
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    container_name: fx-node-exporter
+    ports:
+      - "9100:9100"
+    restart: unless-stopped
+    networks:
+      - fx-monitoring
+      - fx-network
+
   alertmanager:
     image: prom/alertmanager:v0.27.0
     container_name: fx-alertmanager

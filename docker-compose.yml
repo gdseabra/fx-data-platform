@@ -89,6 +89,7 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_PROMETHEUS_AUTH_TYPE: public
     command: server /minio_data --console-address ":9001"
     ports:
       - "9000:9000"    # API

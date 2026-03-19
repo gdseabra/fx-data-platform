@@ -115,7 +115,7 @@
       "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
       "title": "MLflow",
       "type": "stat",
-      "targets": [{ "expr": "up{job=\"mlflow\"}", "legendFormat": "", "refId": "A" }]
+      "targets": [{ "expr": "probe_success{job=\"mlflow\"}", "legendFormat": "", "refId": "A" }]
     },
     {
       "datasource": { "type": "prometheus", "uid": "${datasource}" },

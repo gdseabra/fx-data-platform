@@ -38,11 +38,18 @@ scrape_configs:
       - targets: ['inference-service:8000']
     scrape_interval: 5s
 
-  # ---- Apache Airflow (StatsD exporter) ----
+  # ---- Apache Airflow (via Blackbox Exporter) ----
+  # Airflow /health returns JSON, not Prometheus metrics format.
+  # We use blackbox-exporter to probe the HTTP endpoint.
   - job_name: 'airflow'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+      target: ['http://airflow:8080/health']
     static_configs:
-      - targets: ['airflow:8090']
-    metrics_path: '/health'
+      - targets: ['blackbox-exporter:9115']
+        labels:
+          instance: 'airflow:8080'
 
   # ---- MinIO ----
   - job_name: 'minio'
@@ -50,11 +57,19 @@ scrape_configs:
     static_configs:
       - targets: ['minio:9000']
 
-  # ---- MLflow ----
+  # ---- MLflow (via Blackbox Exporter) ----
+  # MLflow /health returns plain "OK", not Prometheus metrics format.
+  # We use blackbox-exporter to probe the HTTP endpoint and expose
+  # probe_success=1 when MLflow responds with HTTP 2xx.
   - job_name: 'mlflow'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+      target: ['http://mlflow:5000/health']
     static_configs:
-      - targets: ['mlflow:5000']
-    metrics_path: '/health'
+      - targets: ['blackbox-exporter:9115']
+        labels:
+          instance: 'mlflow:5000'
 
   # ---- PostgreSQL Exporter ----
   - job_name: 'postgres'
