@@ -1,0 +1,348 @@
+# FX Data Platform - Complete Docker Compose for Local Development
+# This file orchestrates all services needed for local development and testing
+# Services included:
+#   - PostgreSQL: Transactional database with FX transactions
+#   - Redpanda: Kafka-compatible streaming platform
+#   - MinIO: Local S3 compatible object storage
+#   - Airflow: Workflow orchestration
+#   - MLflow: ML tracking and model registry
+#   - Redis: Caching and message broker
+
+services:
+  # PostgreSQL - Transactional Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: fx-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fx_transactions
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./scripts/seed_initial_data.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fx-network
+    command: postgres -c max_connections=200
+
+  # Redpanda - Kafka-compatible Streaming Platform
+  redpanda:
+    image: redpandadata/redpanda:latest
+    container_name: fx-redpanda
+    command:
+      - redpanda
+      - start
+      - --kafka-addr=PLAINTEXT://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092
+      - --advertise-kafka-addr=PLAINTEXT://redpanda:29092,OUTSIDE://localhost:9092
+      - --rpc-addr=0.0.0.0:33145
+      - --advertise-rpc-addr=redpanda:33145
+      - --pandaproxy-addr=0.0.0.0:8082
+      - --advertise-pandaproxy-addr=localhost:8082
+      - --schema-registry-addr=0.0.0.0:8081
+    ports:
+      - "9092:9092"    # Kafka API
+      - "8081:8081"    # Schema Registry
+      - "8082:8082"    # REST Proxy
+    volumes:
+      - redpanda_data:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fx-network
+
+  # Redpanda Console - Web UI for Kafka/Redpanda
+  redpanda-console:
+    image: redpandadata/console:latest
+    container_name: fx-redpanda-console
+    environment:
+      KAFKA_BROKERS: redpanda:29092
+      SCHEMA_REGISTRY_URL: http://redpanda:8081
+      CONSOLE_FEATURES_ANALYTICS_ENABLED: "false"
+    ports:
+      - "8088:8080"
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fx-network
+
+  # MinIO - Local S3-compatible Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: fx-minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /minio_data --console-address ":9001"
+    ports:
+      - "9000:9000"    # API
+      - "9001:9001"    # Console
+    volumes:
+      - minio_data:/minio_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fx-network
+
+  # Redpanda Connect — streams transactions from Redpanda to MinIO (raw layer)
+  redpanda-connect:
+    image: redpandadata/connect:latest
+    container_name: fx-redpanda-connect
+    volumes:
+      - ./ingestion/redpanda-connect/pipeline.yaml:/etc/redpanda-connect/pipeline.yaml:ro
+    command: run /etc/redpanda-connect/pipeline.yaml
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - fx-network
+    restart: on-failure
+
+  # Create Redpanda topics
+  redpanda-setup:
+    image: redpandadata/redpanda:latest
+    container_name: fx-redpanda-setup
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "
+      rpk topic create fx.transactions --brokers redpanda:29092 --partitions 6 --replicas 1 || true;
+      rpk topic create fx.exchange-rates --brokers redpanda:29092 --partitions 3 --replicas 1 || true;
+      rpk topic create fx.users-cdc --brokers redpanda:29092 --partitions 3 --replicas 1 || true;
+      rpk topic create fx.predictions --brokers redpanda:29092 --partitions 3 --replicas 1 || true;
+      rpk topic create fx.dead-letter --brokers redpanda:29092 --partitions 1 --replicas 1 || true;
+      echo 'Redpanda topics created';
+      "
+    networks:
+      - fx-network
+
+  # Create MinIO Buckets
+  minio-setup:
+    image: minio/mc:latest
+    container_name: fx-minio-setup
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "
+      /usr/bin/mc alias set minio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb minio/fx-datalake-raw --ignore-existing;
+      /usr/bin/mc mb minio/fx-datalake-bronze --ignore-existing;
+      /usr/bin/mc mb minio/fx-datalake-silver --ignore-existing;
+      /usr/bin/mc mb minio/fx-datalake-gold --ignore-existing;
+      /usr/bin/mc mb minio/fx-datalake-ml --ignore-existing;
+      echo 'MinIO buckets created successfully';
+      "
+    networks:
+      - fx-network
+
+  # Redis - Caching and Message Broker
+  redis:
+    image: redis:7-alpine
+    container_name: fx-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - fx-network
+    command: redis-server --appendonly yes
+
+  # Apache Airflow - DB init (runs once, creates schema + admin user)
+  airflow-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    container_name: fx-airflow-init
+    environment:
+      AIRFLOW_HOME: /home/airflow/airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql://airflow:airflow@postgres:5432/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
+    volumes:
+      - ./airflow-logs:/home/airflow/airflow/logs
+      - ./airflow-data:/home/airflow/airflow/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - fx-network
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - >-
+        airflow db migrate &&
+        airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com || true &&
+        airflow connections add spark_local --conn-type spark --conn-host local --conn-extra '{"master": "local[*]", "deploy_mode": "client"}' || true &&
+        airflow connections add aws_default --conn-type aws --conn-extra '{"endpoint_url": "http://minio:9000", "aws_access_key_id": "minioadmin", "aws_secret_access_key": "minioadmin", "region_name": "us-east-1"}' || true &&
+        airflow variables set environment dev || true
+    restart: "no"
+
+  # Apache Airflow - Workflow Orchestration
+  airflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    container_name: fx-airflow
+    environment:
+      AIRFLOW_HOME: /home/airflow/airflow
+      AIRFLOW__CORE__DAGS_FOLDER: /workspace/orchestration/dags
+      AIRFLOW__CORE__PLUGINS_FOLDER: /workspace/orchestration/plugins
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql://airflow:airflow@postgres:5432/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
+      AIRFLOW__CORE__LOAD_DEFAULT_CONNECTIONS: 'False'
+      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'True'
+    ports:
+      - "8090:8080"
+    volumes:
+      - ./orchestration/dags:/workspace/orchestration/dags
+      - ./orchestration/plugins:/workspace/orchestration/plugins
+      - ./etl:/workspace/etl
+      - ./scripts:/workspace/scripts
+      - ./airflow-logs:/home/airflow/airflow/logs
+      - ./airflow-data:/home/airflow/airflow/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - fx-network
+    command: bash -c "
+      airflow webserver --port 8080 &
+      airflow scheduler
+      "
+
+  # MLflow - ML Model Tracking and Registry (SQLite backend for local dev)
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: fx-mlflow
+    environment:
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow_data:/mlflow
+    depends_on:
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fx-network
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --default-artifact-root s3://fx-datalake-ml/mlflow
+      --host 0.0.0.0
+      --port 5000
+      --allowed-hosts "*"
+
+  # ── Inference Service (Phase 4) ──────────────────────────────────────────────
+  inference-service:
+    build:
+      context: .
+      dockerfile: ml/serving/Dockerfile
+    container_name: fx-inference
+    image: fx-inference:latest
+    ports:
+      - "8000:8000"
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:29092
+      PREDICTIONS_TOPIC: fx.predictions
+      FEAST_REPO_PATH: ml/feature_store/feature_repo
+      MODEL_NAME: anomaly-detector-fx
+      MODEL_RELOAD_INTERVAL_SEC: "300"
+      PORT: "8000"
+      WORKERS: "2"
+      ENV: dev
+    depends_on:
+      mlflow:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import httpx; r=httpx.get('http://localhost:8000/health', timeout=4); r.raise_for_status()"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    networks:
+      - fx-network
+
+  # Create Airflow database
+  airflow-db-init:
+    image: postgres:15-alpine
+    container_name: fx-airflow-db-init
+    environment:
+      PGPASSWORD: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - fx-network
+    command: >
+      psql -h postgres -U postgres -c
+      "CREATE DATABASE airflow;"
+      && psql -h postgres -U postgres -d airflow -c
+      "CREATE USER airflow WITH PASSWORD 'airflow';"
+      && psql -h postgres -U postgres -d airflow -c
+      "GRANT ALL PRIVILEGES ON DATABASE airflow TO airflow;"
+      || true
+
+volumes:
+  postgres_data:
+  redpanda_data:
+  minio_data:
+  redis_data:
+  mlflow_data:
+
+networks:
+  fx-network:
+    driver: bridge

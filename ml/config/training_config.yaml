@@ -1,0 +1,72 @@
+# FX Data Platform - ML Training Configuration
+# Configuration parameters for model training pipelines
+
+model_training:
+  # Anomaly Detection
+  anomaly_detection:
+    algorithm: isolation_forest
+    
+    hyperparameters:
+      contamination: 0.005
+      n_estimators: 100
+      max_samples: auto
+      random_state: 42
+    
+    # Thresholds for promotion to production
+    promotion_thresholds:
+      min_f1: 0.85
+      max_latency_p95_ms: 50
+      min_precision: 0.80
+      min_recall: 0.75
+    
+    # Feature configuration
+    features:
+      - amount_brl
+      - hour_of_day
+      - day_of_week
+      - is_business_hours
+      - spread_pct
+      - velocity_1h
+      - z_score_amount
+    
+    # Training data configuration
+    training_config:
+      lookback_days: 90
+      train_ratio: 0.70
+      validation_ratio: 0.15
+      test_ratio: 0.15
+      temporal_split: true
+    
+    # Monitoring
+    monitoring:
+      drift_detection_enabled: true
+      drift_threshold: 0.20
+      concept_drift_window: 7  # days
+
+# Feature Store (Feast)
+feast:
+  enabled: false
+  registry_path: s3://fx-datalake-ml/feast-registry
+  
+  materialization:
+    schedule: "*/30 * * * *"  # Every 30 minutes
+    batch_size: 1000
+    
+  online_store:
+    type: dynamodb
+    region: us-east-1
+
+# MLflow Tracking
+mlflow:
+  tracking_uri: http://mlflow:5000
+  artifact_root: s3://fx-datalake-ml/mlflow
+  
+  registry:
+    transition_workflow: true
+    require_approval: false
+
+# Experiment tracking
+experiments:
+  anomaly_detection:
+    name: fx-anomaly-detection
+    description: Detects anomalous FX transactions

@@ -1,0 +1,63 @@
+# Redpanda Connect Pipeline Configuration
+# Consumes FX CDC events from Redpanda and sinks to MinIO (raw layer) as Parquet
+# Includes: metadata enrichment, dead letter queue, and Prometheus metrics
+
+input:
+  kafka_franz:
+    seed_brokers:
+      - redpanda:29092
+    topics:
+      - "fx.transactions"
+    consumer_group: "redpanda-connect-fx"
+    start_from_oldest: true
+
+pipeline:
+  processors:
+    - try:
+        - mapping: |
+            root = this
+            root.ingestion_timestamp = now()
+            root.source_system = "debezium-cdc"
+            root.batch_id = uuid_v4()
+        - catch:
+            - log:
+                level: WARN
+                message: "Failed to process message: ${!error()}"
+            - mapping: |
+                root = this
+                root._error = error()
+                root._raw = content().string()
+
+output:
+  fallback:
+    # Primary: write to MinIO raw layer as Parquet partitioned by date
+    - aws_s3:
+        bucket: "fx-datalake-raw"
+        endpoint: "http://minio:9000"
+        region: "us-east-1"
+        credentials:
+          id: "minioadmin"
+          secret: "minioadmin"
+        force_path_style_urls: true
+        path: 'events/event_date=${!now().ts_format("2006-01-02")}/${!now().ts_format("20060102150405")}-${!uuid_v4()}.json'
+        batching:
+          count: 100
+          period: "10s"
+        max_in_flight: 10
+        timeout: "30s"
+
+    # Fallback: dead letter queue for failed messages
+    - kafka_franz:
+        seed_brokers:
+          - redpanda:29092
+        topic: "fx.dead-letter"
+
+http:
+  address: "0.0.0.0:4195"
+
+metrics:
+  prometheus: {}
+
+logger:
+  level: INFO
+  format: json

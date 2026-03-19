@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "User Event Schema",
+  "description": "CDC event for user changes",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "User identifier"
+    },
+    "name": {
+      "type": "string",
+      "description": "User name"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "User email"
+    },
+    "state": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}$",
+      "description": "Brazilian state code"
+    },
+    "tier": {
+      "type": "string",
+      "enum": ["standard", "gold", "platinum"],
+      "description": "User tier"
+    },
+    "registration_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Registration date"
+    }
+  },
+  "required": ["user_id", "name", "email", "tier"]
+}

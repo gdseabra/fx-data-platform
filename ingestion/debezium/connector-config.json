@@ -1,0 +1,41 @@
+# Debezium Connector Configuration for PostgreSQL CDC
+# Captures changes from fx_transactions and users tables
+
+{
+  "name": "fx-cdc-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "postgres",
+    "database.port": 5432,
+    "database.user": "postgres",
+    "database.password": "postgres",
+    "database.dbname": "fx_transactions",
+    "database.server.name": "fx",
+    "plugin.name": "pgoutput",
+    "publication.name": "fx_publication",
+    "publication.autocreate.mode": "filtered",
+    "slot.name": "fx_cdc_slot",
+    "slot.drop.on.stop": false,
+    "table.include.list": "public.transactions,public.users",
+    "topic.prefix": "fx",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": true,
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": false,
+    "decimal.handling.mode": "string",
+    "heartbeat.interval.ms": 10000,
+    "heartbeat.action.query": "UPDATE public.xmin SET updated_at = CURRENT_TIMESTAMP",
+    "transforms": "route,unwrap",
+    "transforms.route.type": "org.apache.kafka.connect.transforms.RegexRouter",
+    "transforms.route.regex": "([^.]+)\\.([^.]+)\\.([^.]+)",
+    "transforms.route.replacement": "$3",
+    "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+    "transforms.unwrap.drop.tombstones": true,
+    "tasks.max": 1,
+    "batch.size": 2048,
+    "poll.interval.ms": 1000,
+    "max.batch.size": 20480,
+    "snapshot.mode": "initial",
+    "snapshot.isolation.mode": "repeatable_read"
+  }
+}

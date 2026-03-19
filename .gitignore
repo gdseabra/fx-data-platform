@@ -1,0 +1,181 @@
+# ============================================
+# FX Data Platform — .gitignore
+# ============================================
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ---------- Testing & Coverage ----------
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+htmlcov/
+
+# ---------- Type checking & Linting ----------
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.ruff_cache/
+
+# ---------- Virtual environments ----------
+venv/
+ENV/
+env/
+.venv/
+conda-env/
+
+# ---------- IDEs ----------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.project
+.pydevproject
+.settings/
+*.iml
+.netbeans/
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# ---------- Jupyter Notebooks ----------
+.ipynb_checkpoints/
+# NOTE: .ipynb files ARE tracked (ml/notebooks/exploration.ipynb)
+
+# ---------- Terraform ----------
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+.env.terraform
+# NOTE: environments/dev/terraform.tfvars IS tracked (non-secret dev defaults)
+
+# ---------- AWS ----------
+.aws/
+aws-cli/
+credentials
+*.pem
+*.key
+
+# ---------- Node ----------
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# ---------- Docker (runtime only) ----------
+docker-compose.override.yml
+# NOTE: .dockerignore IS tracked (needed for builds)
+
+# ---------- Airflow (runtime volumes) ----------
+airflow-data/
+airflow-logs/
+airflow.cfg
+airflow.db
+airflow-webserver.pid
+unittests.cfg
+
+# ---------- Spark / Hive (local runtime) ----------
+spark-warehouse/
+metastore_db/
+derby.log
+
+# ---------- MLflow (local runtime) ----------
+mlruns/
+mlartifacts/
+.mlflow/
+
+# ---------- Feast (local runtime) ----------
+.feast/
+feast.db
+online_store.db
+
+# ---------- Data files (runtime / generated) ----------
+data/
+*.csv
+*.parquet
+*.feather
+*.h5
+*.pickle
+*.pkl
+# NOTE: data/training_data.parquet is generated locally, not tracked.
+# Regenerate with: python -m ml.training.train_anomaly_detector
+
+# ---------- Logs ----------
+logs/
+*.log
+
+# ---------- Environment / Secrets ----------
+.env
+.env.local
+.env.*.local
+config.local.yaml
+*.secret
+
+# ---------- Claude Code ----------
+.claude/
+
+# ---------- Temporary / Generated ----------
+.tmp/
+tmp/
+temp/
+*.tmp
+*.bak
+.generated/
+auto-generated/
+build-artifacts/
+
+# ---------- Reports (generated on demand) ----------
+docs/data_quality_report.html
+docs/data_quality_report.json
+docs/runbook_generated.md

@@ -1,0 +1,21 @@
+project: fx_feature_store
+provider: local   # override to "aws" in production
+
+# Registry: stores feature definitions and metadata
+# Dev: local SQLite file; Prod: S3 path
+registry:
+  registry_type: file
+  path: data/feature_store/registry.db
+
+# Offline store: historical features for training
+# Dev: local Parquet files; Prod: Spark + Iceberg on S3
+offline_store:
+  type: file
+
+# Online store: low-latency lookup at inference time
+# Dev: SQLite; Prod: DynamoDB
+online_store:
+  type: sqlite
+  path: data/feature_store/online_store.db
+
+entity_key_serialization_version: 2

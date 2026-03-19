@@ -1,0 +1,144 @@
+# Prometheus Alert Rules for FX Data Platform
+# Aligned with operational SLAs and monitoring requirements
+
+groups:
+  # =============================================
+  # Data Pipeline Alerts
+  # =============================================
+  - name: data_pipeline
+    interval: 30s
+    rules:
+      # CRITICAL: Consumer lag > 10.000 por mais de 5 minutos
+      - alert: HighConsumerLag
+        expr: 'max(redpanda_kafka_consumer_group_lag) by (group, topic) > 10000'
+        for: 5m
+        labels:
+          severity: critical
+          team: data-engineering
+        annotations:
+          summary: "Consumer lag critico no topico {{ $labels.topic }}"
+          description: "Consumer group {{ $labels.group }} tem lag de {{ $value }} mensagens no topico {{ $labels.topic }} por mais de 5 minutos."
+          runbook_url: "https://github.com/fx-data-platform/docs/runbook.md#consumer-lag"
+
+      # CRITICAL: Nenhum dado novo na camada raw ha mais de 1 hora
+      - alert: NoDataIngestion
+        expr: 'time() - max(fx_pipeline_last_ingestion_timestamp) > 3600'
+        for: 5m
+        labels:
+          severity: critical
+          team: data-engineering
+        annotations:
+          summary: "Sem ingestao de dados ha {{ $value | humanizeDuration }}"
+          description: "Nenhum dado novo foi gravado na camada raw ha mais de 1 hora. Verificar Redpanda Connect e produtores."
+          runbook_url: "https://github.com/fx-data-platform/docs/runbook.md#no-data-ingestion"
+
+      # CRITICAL: Servico de inferencia down ou latencia p95 > 500ms
+      - alert: InferenceServiceCritical
+        expr: 'up{job="inference-service"} == 0 or histogram_quantile(0.95, rate(fx_inference_request_latency_seconds_bucket[5m])) > 0.5'
+        for: 5m
+        labels:
+          severity: critical
+          team: ml-engineering
+        annotations:
+          summary: "Servico de inferencia em estado critico"
+          description: "Servico de inferencia esta down ou latencia p95 excede 500ms. Verificar saude do container, modelo carregado e Feast online store."
+          runbook_url: "https://github.com/fx-data-platform/docs/runbook.md#inference-latency"
+
+  # =============================================
+  # ML Model Performance Alerts
+  # =============================================
+  - name: model_performance
+    interval: 60s
+    rules:
+      # WARNING: Data drift detectado (PSI > 0.2 em qualquer feature)
+      - alert: DataDriftDetected
+        expr: 'max(fx_feature_drift_psi) by (feature_name) > 0.2'
+        for: 15m
+        labels:
+          severity: warning
+          team: ml-engineering
+        annotations:
+          summary: "Data drift detectado na feature {{ $labels.feature_name }}"
+          description: "PSI de {{ $value }} na feature {{ $labels.feature_name }} excede threshold de 0.2. Distribuicao do input mudou significativamente. Considerar retreino."
+          runbook_url: "https://github.com/fx-data-platform/docs/runbook.md#data-drift"
+
+      # WARNING: Modelo em producao ha mais de 30 dias sem retreino
+      - alert: ModelStaleness
+        expr: 'time() - fx_model_last_trained_timestamp > 2592000'
+        for: 1h
+        labels:
+          severity: warning
+          team: ml-engineering
+        annotations:
+          summary: "Modelo em producao nao retreinado ha {{ $value | humanizeDuration }}"
+          description: "O modelo de deteccao de anomalias nao e retreinado ha mais de 30 dias. Performance pode estar degradando."
+          runbook_url: "https://github.com/fx-data-platform/docs/runbook.md#model-staleness"
+
+  # =============================================
+  # Data Quality Alerts
+  # =============================================
+  - name: data_quality
+    interval: 60s
+    rules:
+      # WARNING: Quality check falhou em mais de 5% dos registros
+      - alert: DataQualityDegraded
+        expr: '(fx_quality_check_failed_records / fx_quality_check_total_records) > 0.05'
+        for: 10m
+        labels:
+          severity: warning
+          team: data-engineering
+        annotations:
+          summary: "Quality check falhando em {{ $value | humanizePercentage }} dos registros"
+          description: "Mais de 5% dos registros na camada {{ $labels.layer }} estao falhando nos quality checks. Verificar dados de origem e regras de validacao."
+          runbook_url: "https://github.com/fx-data-platform/docs/runbook.md#quality-degraded"
+
+      # INFO: Volume de transacoes 50% abaixo da media (possivel problema upstream)
+      - alert: LowTransactionVolume
+        expr: 'fx_transactions_count_1h < (fx_transactions_avg_count_1h * 0.5)'
+        for: 30m
+        labels:
+          severity: info
+          team: data-engineering
+        annotations:
+          summary: "Volume de transacoes 50%+ abaixo da media"
+          description: "Volume atual de {{ $value }} transacoes/hora esta significativamente abaixo da media. Possivel problema upstream ou queda legítima de demanda."
+          runbook_url: "https://github.com/fx-data-platform/docs/runbook.md#low-volume"
+
+  # =============================================
+  # Infrastructure Alerts
+  # =============================================
+  - name: infrastructure
+    interval: 30s
+    rules:
+      # CRITICAL: Service down
+      - alert: ServiceDown
+        expr: 'up == 0'
+        for: 3m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Servico {{ $labels.job }} esta down"
+          description: "O servico {{ $labels.job }} ({{ $labels.instance }}) esta inacessivel ha mais de 3 minutos."
+
+      # WARNING: High CPU usage
+      - alert: HighCPUUsage
+        expr: '100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80'
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "CPU acima de 80% em {{ $labels.instance }}"
+          description: "Uso de CPU em {{ $value }}% por mais de 10 minutos."
+
+      # WARNING: Low disk space
+      - alert: LowDiskSpace
+        expr: '(node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.1'
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Disco com menos de 10% disponivel em {{ $labels.instance }}"
+          description: "Espaco em disco em {{ $value | humanizePercentage }}. Considerar limpeza ou expansao."

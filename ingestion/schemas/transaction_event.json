@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "FX Transaction Event Schema",
+  "description": "Schema for FX transaction events streaming through Redpanda",
+  "properties": {
+    "transaction_id": {
+      "type": "string",
+      "description": "Unique transaction identifier"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "User who initiated the transaction"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Transaction timestamp in ISO 8601 format"
+    },
+    "transaction_type": {
+      "type": "string",
+      "enum": ["BUY", "SELL"],
+      "description": "Whether this is a buy or sell transaction"
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$",
+      "description": "3-letter ISO currency code"
+    },
+    "amount_brl": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Amount in Brazilian Real (BRL)"
+    },
+    "amount_foreign": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Amount in foreign currency"
+    },
+    "exchange_rate": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Exchange rate used"
+    },
+    "spread_pct": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Spread percentage"
+    },
+    "fee_brl": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Transaction fee in BRL"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "completed", "failed", "cancelled"],
+      "description": "Transaction status"
+    },
+    "channel": {
+      "type": "string",
+      "enum": ["mobile", "web", "api"],
+      "description": "Channel through which transaction was initiated"
+    },
+    "device": {
+      "type": "string",
+      "description": "Device identifier"
+    },
+    "is_anomaly": {
+      "type": "boolean",
+      "description": "Flag indicating if transaction is anomalous"
+    },
+    "anomaly_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "ML model anomaly score (0-1)"
+    }
+  },
+  "required": [
+    "transaction_id",
+    "user_id",
+    "timestamp",
+    "transaction_type",
+    "currency",
+    "amount_brl",
+    "amount_foreign",
+    "exchange_rate",
+    "spread_pct",
+    "status"
+  ],
+  "additionalProperties": false
+}

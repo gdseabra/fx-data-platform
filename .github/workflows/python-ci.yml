@@ -1,0 +1,49 @@
+name: Python CI
+
+on:
+  pull_request:
+    paths:
+      - 'etl/**'
+      - 'ml/**'
+      - 'ingestion/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+
+concurrency:
+  group: python-ci-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Lint with ruff
+        run: ruff check .
+
+      - name: Type check with mypy
+        run: mypy etl ingestion ml scripts --ignore-missing-imports
+
+      - name: Run tests with coverage
+        run: pytest tests/ -v --cov=etl,ml,ingestion,scripts --cov-report=term-missing --cov-report=html --cov-fail-under=80
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: htmlcov/
