@@ -1,7 +1,6 @@
 # FX Data Platform - Health Check Consumer
 # Consumes from Redpanda topics and reports metrics
 
-import json
 import logging
 from argparse import ArgumentParser
 from datetime import datetime

@@ -6,14 +6,22 @@
 
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 
-from pyspark.sql import SparkSession, DataFrame
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import (
-    col, desc, row_number, current_timestamp, input_file_name,
+    col,
+    current_timestamp,
+    desc,
+    input_file_name,
+    row_number,
 )
 from pyspark.sql.types import (
-    BooleanType, DecimalType, StringType, StructField, StructType, TimestampType,
+    BooleanType,
+    DecimalType,
+    StringType,
+    StructField,
+    StructType,
+    TimestampType,
 )
 from pyspark.sql.window import Window
 
@@ -50,7 +58,7 @@ class BronzeIngestionJob:
 
     # ── read ───────────────────────────────────────────────────────────────────
 
-    def read_raw(self, date_str: Optional[str] = None) -> DataFrame:
+    def read_raw(self, date_str: str | None = None) -> DataFrame:
         """Read raw JSON for a given date (defaults to yesterday)."""
         if date_str is None:
             date_str = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
@@ -104,7 +112,7 @@ class BronzeIngestionJob:
 
     # ── orchestrate ────────────────────────────────────────────────────────────
 
-    def process(self, date_str: Optional[str] = None) -> dict:
+    def process(self, date_str: str | None = None) -> dict:
         metrics = {
             "date": date_str,
             "rows_read": 0,
@@ -136,6 +144,7 @@ class BronzeIngestionJob:
 def main() -> None:
     import argparse
     import sys
+
     from etl.common.spark_session import create_spark_session
 
     parser = argparse.ArgumentParser(description="FX Bronze Ingestion Job")

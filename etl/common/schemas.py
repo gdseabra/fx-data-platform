@@ -2,8 +2,11 @@
 # Centralized schema definitions for all data entities
 
 from pyspark.sql.types import (
-    StructType, StructField, StringType, DecimalType,
-    TimestampType, BooleanType, IntegerType, LongType,
+    DecimalType,
+    StringType,
+    StructField,
+    StructType,
+    TimestampType,
 )
 
 

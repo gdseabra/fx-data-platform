@@ -39,6 +39,7 @@ def on_failure_callback(context: dict[str, Any]) -> None:
 
     Example:
         default_args = {"on_failure_callback": on_failure_callback}
+
     """
     ti = context.get("task_instance")
     exception = context.get("exception")
@@ -91,6 +92,7 @@ def on_success_callback(context: dict[str, Any]) -> None:
             task_id="notify_success",
             python_callable=lambda **ctx: on_success_callback(ctx),
         )
+
     """
     ti = context.get("task_instance")
 

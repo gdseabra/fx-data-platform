@@ -4,7 +4,7 @@
 
 import os
 import subprocess
-import tempfile
+
 import pytest
 
 
@@ -20,4 +20,4 @@ def airflow_db(tmp_path_factory):
         capture_output=True,
     )
     os.environ["AIRFLOW_HOME"] = airflow_home
-    yield
+    return

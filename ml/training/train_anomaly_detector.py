@@ -24,11 +24,12 @@ import json
 import logging
 import os
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 import matplotlib
+
 matplotlib.use("Agg")  # non-interactive backend
 import matplotlib.pyplot as plt
 import mlflow
@@ -73,7 +74,6 @@ def _load_from_feast(config: dict, lookback_days: int) -> pd.DataFrame:
     store = FeatureStore(repo_path=repo_path)
 
     end_date = datetime.now(tz=timezone.utc)
-    start_date = end_date - timedelta(days=lookback_days)
 
     # Build entity DataFrame over the time range
     entity_df = pd.DataFrame(
@@ -135,6 +135,7 @@ def prepare_features(
 
     Returns:
         (X_scaled, y, scaler) where y is the is_anomaly ground-truth label.
+
     """
     cols = feature_cols or _FEATURE_COLS
     # Keep only columns that actually exist
@@ -242,7 +243,7 @@ def evaluate(
 # MLflow artifact helpers
 # ---------------------------------------------------------------------------
 
-def _fig_to_array(fig) -> "np.ndarray":
+def _fig_to_array(fig) -> np.ndarray:
     """Convert a matplotlib figure to an RGBA numpy array for mlflow.log_image."""
     buf = io.BytesIO()
     fig.savefig(buf, format="png", bbox_inches="tight")
@@ -290,6 +291,7 @@ def run_pipeline(config: dict, env: str = "dev") -> dict[str, Any]:
 
     Returns:
         Dict with run_ids, metrics, and status for both models.
+
     """
     mlflow_cfg = config.get("mlflow", {})
     tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", mlflow_cfg.get("tracking_uri", "http://mlflow:5000"))

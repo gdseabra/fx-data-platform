@@ -8,7 +8,6 @@
 import json
 import time
 import uuid
-from typing import List
 
 import pytest
 
@@ -44,9 +43,9 @@ def producer_config(bootstrap: str) -> ProducerConfig:
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _consume_n(bootstrap: str, topic: str, n: int, timeout: float = 15.0) -> List[dict]:
+def _consume_n(bootstrap: str, topic: str, n: int, timeout: float = 15.0) -> list[dict]:
     """Consume exactly N messages from topic, return as dicts."""
-    from confluent_kafka import Consumer, KafkaError
+    from confluent_kafka import Consumer
 
     group_id = f"test-consumer-{uuid.uuid4()}"
     consumer = Consumer({

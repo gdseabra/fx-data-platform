@@ -6,7 +6,6 @@
 #       (fx_gold.user_summary, fx_gold.hourly_rates, fx_silver.transactions).
 
 import os
-from datetime import timedelta
 
 from feast import FileSource
 from feast.data_format import ParquetFormat

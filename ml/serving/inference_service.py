@@ -26,10 +26,10 @@ import os
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any
 
 import structlog
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import PlainTextResponse
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
@@ -144,7 +144,7 @@ class TransactionRequest(BaseModel):
     amount_brl: float = Field(..., ge=0, description="Transaction amount in BRL")
     currency: str = Field(..., pattern="^[A-Z]{3}$", description="ISO-4217 currency code")
     timestamp: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
-    spread_pct: Optional[float] = Field(None, ge=0)
+    spread_pct: float | None = Field(None, ge=0)
 
 
 class AnomalyResponse(BaseModel):
@@ -152,7 +152,7 @@ class AnomalyResponse(BaseModel):
     anomaly_score: float = Field(..., ge=0, le=1, description="0=normal, 1=highly anomalous")
     is_anomaly: bool
     risk_level: str = Field(..., description="low | medium | high")
-    feature_contributions: Dict[str, float]
+    feature_contributions: dict[str, float]
     model_version: str
     latency_ms: float
 
@@ -162,8 +162,8 @@ class HealthResponse(BaseModel):
     model_loaded: bool
     model_version: str
     feast_available: bool
-    last_model_update: Optional[datetime]
-    dependencies: Dict[str, bool]
+    last_model_update: datetime | None
+    dependencies: dict[str, bool]
 
 
 # ---------------------------------------------------------------------------
@@ -178,7 +178,6 @@ def _fetch_feast_features(user_id: str, currency: str) -> dict[str, float]:
     if _feast_store is None:
         return {}
     try:
-        import pandas as pd
 
         user_features = _feast_store.get_online_features(
             features=[
@@ -231,7 +230,7 @@ def _build_feature_vector(request: TransactionRequest, feast_features: dict) -> 
 
     velocity_1h = feast_features.get("transactions_last_1h", 0.0)
     normal_velocity = max(feast_features.get("total_transactions_30d", 1.0) / 30.0, 0.1)
-    velocity_score = velocity_1h / normal_velocity
+    _ = velocity_1h / normal_velocity  # reserved for future risk scoring
 
     return {
         "amount_brl": request.amount_brl,
@@ -281,7 +280,7 @@ async def predict(request: TransactionRequest) -> AnomalyResponse:
         pred_val = float(raw[0]) if hasattr(raw, "__len__") else float(raw)
     except Exception as exc:
         logger.error("Model predict failed", error=str(exc))
-        raise HTTPException(status_code=500, detail=f"Inference error: {exc}")
+        raise HTTPException(status_code=500, detail=f"Inference error: {exc}") from exc
 
     # Normalise IsolationForest output (-1/+1) → anomaly score 0-1
     # score_samples() returns negative values; higher (less negative) = more normal

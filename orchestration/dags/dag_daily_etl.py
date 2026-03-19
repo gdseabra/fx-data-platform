@@ -48,7 +48,7 @@ dag = DAG(
     schedule="0 6 * * *",
     catchup=False,
     tags=["etl", "daily", "production"],
-    sla_miss_callback=on_sla_miss_callback,
+    sla_miss_callback=on_sla_miss_callback,  # type: ignore[arg-type]
 )
 
 # ── task helpers ──────────────────────────────────────────────────────────────
@@ -72,7 +72,7 @@ def _check_raw_data(**context) -> bool:
     )
 
     resp = s3.list_objects_v2(Bucket=bucket, Prefix=prefix, MaxKeys=1)
-    found = resp.get("KeyCount", 0) > 0
+    found: bool = resp.get("KeyCount", 0) > 0
     if not found:
         logger.info(f"Raw partition not ready yet: s3://{bucket}/{prefix}")
     return found

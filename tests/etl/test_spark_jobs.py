@@ -2,11 +2,11 @@
 # Uses the local SparkSession from conftest.py (no cluster required).
 # Run: pytest tests/etl/ -m unit -v
 
-import pytest
+from datetime import date, datetime
 from decimal import Decimal
-from datetime import datetime, date
-from pyspark.sql import Row
 
+import pytest
+from pyspark.sql import Row
 
 # ── quality checks ────────────────────────────────────────────────────────────
 
@@ -267,8 +267,9 @@ class TestGoldAggregationJob:
         )
 
     def test_daily_volume_row_count(self, spark):
-        from etl.jobs.gold.aggregate_metrics import GoldAggregationJob
         from unittest.mock import patch
+
+        from etl.jobs.gold.aggregate_metrics import GoldAggregationJob
 
         job = GoldAggregationJob(spark)
         with patch.object(job, "_silver_df", return_value=self._silver_df(spark)):
@@ -277,8 +278,9 @@ class TestGoldAggregationJob:
         assert result.count() == 2  # USD and EUR
 
     def test_daily_volume_usd_count(self, spark):
-        from etl.jobs.gold.aggregate_metrics import GoldAggregationJob
         from unittest.mock import patch
+
+        from etl.jobs.gold.aggregate_metrics import GoldAggregationJob
 
         job = GoldAggregationJob(spark)
         with patch.object(job, "_silver_df", return_value=self._silver_df(spark)):
@@ -288,8 +290,9 @@ class TestGoldAggregationJob:
         assert int(usd_row.transaction_count) == 2
 
     def test_user_summary_groups_correctly(self, spark):
-        from etl.jobs.gold.aggregate_metrics import GoldAggregationJob
         from unittest.mock import patch
+
+        from etl.jobs.gold.aggregate_metrics import GoldAggregationJob
 
         job = GoldAggregationJob(spark)
         with patch.object(job, "_silver_df", return_value=self._silver_df(spark)):

@@ -15,8 +15,8 @@ from argparse import ArgumentParser
 from datetime import datetime
 from pathlib import Path
 
-import yaml
 import structlog
+import yaml
 
 logger = structlog.get_logger(__name__)
 
@@ -328,15 +328,15 @@ def generate_runbook_markdown(alerts: list[dict]) -> str:
         # Description
         desc = troubleshooting.get("description", alert.get("description", ""))
         if desc:
-            lines.extend([f"### Sintoma", "", desc, ""])
+            lines.extend(["### Sintoma", "", desc, ""])
 
         # Alert expression
         lines.extend([
             "### Regra de Alerta",
             "",
-            f"```promql",
+            "```promql",
             f"{alert['expr']}",
-            f"```",
+            "```",
             f"**Threshold:** dispara apos {alert['for']}",
             "",
         ])
@@ -375,6 +375,7 @@ def main() -> int:
 
     Returns:
         0 if successful, 1 on error, 2 on warning.
+
     """
     parser = ArgumentParser(
         description="Generate operational runbook from alert rules"

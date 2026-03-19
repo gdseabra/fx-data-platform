@@ -3,7 +3,6 @@
 # Called daily by the Airflow iceberg_maintenance task.
 
 import logging
-from typing import Optional
 
 from pyspark.sql import SparkSession
 
@@ -24,7 +23,7 @@ _COMPACTION_TABLES = [
 ]
 
 
-def _get_or_create_spark(spark: Optional[SparkSession] = None) -> SparkSession:
+def _get_or_create_spark(spark: SparkSession | None = None) -> SparkSession:
     if spark is not None:
         return spark
     from etl.common.spark_session import create_spark_session
@@ -33,7 +32,7 @@ def _get_or_create_spark(spark: Optional[SparkSession] = None) -> SparkSession:
 
 def expire_snapshots(
     days: int = 7,
-    spark: Optional[SparkSession] = None,
+    spark: SparkSession | None = None,
 ) -> None:
     """Expire Iceberg snapshots older than *days* days.
 
@@ -43,8 +42,6 @@ def expire_snapshots(
     """
     logger.info(f"Expiring snapshots older than {days} days...")
     _spark = _get_or_create_spark(spark)
-    max_age_ms = days * 24 * 3_600 * 1_000
-
     for table in _ALL_TABLES:
         try:
             _spark.sql(f"""
@@ -59,7 +56,7 @@ def expire_snapshots(
             logger.warning(f"  Could not expire snapshots for {table}: {exc}")
 
 
-def remove_orphan_files(spark: Optional[SparkSession] = None) -> None:
+def remove_orphan_files(spark: SparkSession | None = None) -> None:
     """Remove data files on storage that are no longer referenced by any snapshot."""
     logger.info("Removing orphan files...")
     _spark = _get_or_create_spark(spark)
@@ -74,7 +71,7 @@ def remove_orphan_files(spark: Optional[SparkSession] = None) -> None:
             logger.warning(f"  Could not clean orphan files for {table}: {exc}")
 
 
-def compact_small_files(spark: Optional[SparkSession] = None) -> None:
+def compact_small_files(spark: SparkSession | None = None) -> None:
     """Rewrite small files to improve scan performance.
 
     Uses binpack strategy: merges files below target_file_size_bytes (128 MB)
@@ -107,7 +104,7 @@ def _days_ago_ts(days: int) -> str:
     return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def run_all(spark: Optional[SparkSession] = None) -> None:
+def run_all(spark: SparkSession | None = None) -> None:
     """Run the full maintenance suite in order."""
     _spark = _get_or_create_spark(spark)
     try:

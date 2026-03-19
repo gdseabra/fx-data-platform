@@ -9,7 +9,7 @@ from argparse import ArgumentParser
 from collections import deque
 from datetime import datetime, timezone
 from statistics import mean, stdev
-from typing import Any, Dict
+from typing import Any
 
 import structlog
 from confluent_kafka import Producer
@@ -29,7 +29,7 @@ structlog.configure(
 logger = structlog.get_logger(__name__)
 
 # Base rates relative to BRL (approximate mid-market)
-_BASE_RATES: Dict[str, float] = {
+_BASE_RATES: dict[str, float] = {
     "USD": 5.0,
     "EUR": 5.5,
     "GBP": 6.3,
@@ -62,9 +62,9 @@ class ExchangeRateProducer:
 
     def __init__(self, config: ProducerConfig | None = None):
         self._config = config or ProducerConfig()
-        self._rates: Dict[str, float] = dict(_BASE_RATES)
+        self._rates: dict[str, float] = dict(_BASE_RATES)
         # Per-pair rolling window of recent pct changes for std dev calculation
-        self._change_history: Dict[str, deque] = {
+        self._change_history: dict[str, deque] = {
             pair: deque(maxlen=_WINDOW_SIZE) for pair in _BASE_RATES
         }
         self._running = True
@@ -95,7 +95,7 @@ class ExchangeRateProducer:
         else:
             self._messages_sent += 1
 
-    def _next_rate(self, currency: str) -> Dict[str, Any]:
+    def _next_rate(self, currency: str) -> dict[str, Any]:
         """Advance the random walk one step and return the rate event."""
         import random
 
@@ -159,6 +159,7 @@ class ExchangeRateProducer:
         Args:
             interval_seconds: Seconds between each snapshot publication.
             duration_seconds: Total run time. 0 means run until interrupted.
+
         """
         logger.info("starting", interval_seconds=interval_seconds,
                     duration_seconds=duration_seconds or "indefinite")

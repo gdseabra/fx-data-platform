@@ -12,7 +12,6 @@ Usage:
 
 import sys
 from argparse import ArgumentParser
-from datetime import datetime
 
 import boto3
 import structlog
@@ -138,6 +137,7 @@ def main() -> int:
 
     Returns:
         0 if successful, 1 on error, 2 on warning.
+
     """
     parser = ArgumentParser(
         description="Find and remove orphan files not referenced by Iceberg tables"
@@ -244,13 +244,13 @@ def main() -> int:
 
     # Summary
     print("\n" + "=" * 60)
-    print(f"Orphan Files Summary")
+    print("Orphan Files Summary")
     print(f"  Total orphans found: {total_orphans}")
     print(f"  Total space to reclaim: {format_size(total_space)}")
     if not dry_run:
         print(f"  Total files deleted: {total_deleted}")
     else:
-        print(f"  Mode: DRY RUN (use --execute to delete)")
+        print("  Mode: DRY RUN (use --execute to delete)")
     print("=" * 60)
 
     return 0

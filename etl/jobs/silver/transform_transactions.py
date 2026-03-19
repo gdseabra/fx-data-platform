@@ -6,12 +6,19 @@
 
 import logging
 
-from pyspark.sql import SparkSession, DataFrame
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import (
-    col, when, upper,
-    hour, dayofweek, month, year,
-    round as spark_round,
+    col,
     current_timestamp,
+    dayofweek,
+    hour,
+    month,
+    upper,
+    when,
+    year,
+)
+from pyspark.sql.functions import (
+    round as spark_round,
 )
 
 logger = logging.getLogger(__name__)
@@ -160,6 +167,7 @@ class SilverTransformationJob:
 
 def main() -> None:
     import argparse
+
     from etl.common.spark_session import create_spark_session
 
     parser = argparse.ArgumentParser(description="FX Silver Transformation Job")

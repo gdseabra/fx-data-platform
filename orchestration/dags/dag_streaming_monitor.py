@@ -63,7 +63,7 @@ def _check_redpanda_lag(**context) -> dict:
 
     except Exception as exc:
         logger.error(f"Could not connect to Redpanda Admin API: {exc}")
-        results["error"] = str(exc)
+        results["error"] = {"status": str(exc)}
 
     context["ti"].xcom_push("lag_check", results)
     if stale_topics:
@@ -95,9 +95,10 @@ def _check_connector_status(**context) -> dict:
 
 def _check_data_freshness(**context) -> dict:
     """Verify the most recent object in fx-datalake-raw is < 30 minutes old."""
+    from datetime import datetime, timedelta, timezone
+
     import boto3
     from botocore.client import Config
-    from datetime import datetime, timezone, timedelta
 
     results = {}
     staleness_threshold = timedelta(minutes=30)

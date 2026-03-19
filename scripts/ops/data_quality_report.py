@@ -154,7 +154,7 @@ def generate_html_report(all_stats: list[dict], output_path: str) -> None:
         "  .warn { background: #fff3cd; }",
         "</style>",
         "</head><body>",
-        f"<h1>FX Data Platform - Data Quality Report</h1>",
+        "<h1>FX Data Platform - Data Quality Report</h1>",
         f"<p>Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}</p>",
     ]
 
@@ -238,6 +238,7 @@ def main() -> int:
 
     Returns:
         0 if successful, 1 on error, 2 on warning.
+
     """
     parser = ArgumentParser(
         description="Generate data quality report for all Iceberg tables"

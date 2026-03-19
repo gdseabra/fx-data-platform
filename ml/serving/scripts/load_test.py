@@ -29,8 +29,6 @@ import uuid
 from datetime import datetime, timezone
 
 from locust import HttpUser, between, events, task
-from locust.runners import MasterRunner
-
 
 # ---------------------------------------------------------------------------
 # Transaction factory

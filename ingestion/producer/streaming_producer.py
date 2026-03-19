@@ -3,14 +3,13 @@
 # Supports throughput control, anomaly injection, and delivery confirmation
 
 import json
+import logging
 import random
 import signal
 import time
 from argparse import ArgumentParser
 from datetime import datetime, timezone
-from typing import Any, Dict
-
-import logging
+from typing import Any
 
 import structlog
 from confluent_kafka import Producer
@@ -57,6 +56,7 @@ class StreamingProducer:
             rate_msgs_per_sec: Override for messages per second
             anomaly_rate: Override for anomaly rate (0-1)
             enable_anomalies: Whether to inject anomalies
+
         """
         self._config = config or ProducerConfig()
         self.rate_msgs_per_sec = rate_msgs_per_sec or self._config.default_rate_msgs_per_sec
@@ -86,11 +86,12 @@ class StreamingProducer:
         else:
             self.messages_sent += 1
 
-    def generate_transaction(self) -> Dict[str, Any]:
+    def generate_transaction(self) -> dict[str, Any]:
         """Generate a simulated FX transaction.
 
         Returns:
             Dictionary representing a transaction
+
         """
         is_anomaly = self.enable_anomalies and random.random() < self.anomaly_rate
 
@@ -106,8 +107,6 @@ class StreamingProducer:
 
         currencies = ["USD", "EUR", "GBP", "JPY", "AUD", "CAD"]
         channels = ["mobile", "web", "api"]
-        tiers = ["standard", "gold", "platinum"]
-
         return {
             "transaction_id": str(random.randint(10**15, 10**16)),
             "user_id": str(random.randint(1, 10)),
@@ -131,6 +130,7 @@ class StreamingProducer:
 
         Args:
             duration_seconds: How long to produce messages
+
         """
         logger.info("starting_production", duration_seconds=duration_seconds)
         start_time = time.time()

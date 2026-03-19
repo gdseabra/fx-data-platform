@@ -195,6 +195,7 @@ def main() -> int:
 
     Returns:
         0 if successful, 1 on error, 2 on warning.
+
     """
     parser = ArgumentParser(
         description="Rotate credentials for platform services"

@@ -2,8 +2,9 @@
 # Uses DagBag to import all DAGs and validates structure.
 # Run: pytest tests/orchestration/ -m unit -v
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 DAG_DIR = str(Path(__file__).parents[2] / "orchestration" / "dags")
 

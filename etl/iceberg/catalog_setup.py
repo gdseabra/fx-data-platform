@@ -168,6 +168,7 @@ def create_gold_tables(spark: SparkSession) -> None:
 
 def main() -> None:
     import argparse
+
     from etl.common.spark_session import create_spark_session
 
     parser = argparse.ArgumentParser(description="Iceberg Catalog Setup")

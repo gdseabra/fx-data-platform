@@ -41,6 +41,7 @@ def create_spark_session(
 
     Returns:
         A ready-to-use SparkSession.
+
     """
     logger.info(f"Creating SparkSession: app={app_name} env={env}")
 

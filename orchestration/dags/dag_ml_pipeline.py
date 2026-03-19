@@ -33,7 +33,7 @@ _FEAST_REPO = os.environ.get("FEAST_REPO_PATH", "ml/feature_store/feature_repo")
 
 def _load_config() -> dict:
     with open(_CONFIG_PATH) as f:
-        return yaml.safe_load(f)
+        return dict(yaml.safe_load(f))
 
 
 # ── task callables ────────────────────────────────────────────────────────────

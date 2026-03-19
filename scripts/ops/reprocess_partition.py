@@ -134,7 +134,6 @@ def validate_results(layer: str, dates: list[str], env: str) -> bool:
     """Validate that reprocessed data exists and has expected row counts."""
     config = LAYER_CONFIG[layer]
     table = config["iceberg_table"]
-    partition_col = config["partition_column"]
 
     for dt in dates:
         logger.info("Validating reprocessed data", layer=layer, date=dt)
@@ -155,6 +154,7 @@ def main() -> int:
 
     Returns:
         0 if successful, 1 on error, 2 on warning.
+
     """
     parser = ArgumentParser(
         description="Reprocess data partitions for a given layer and date range"

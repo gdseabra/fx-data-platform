@@ -46,7 +46,7 @@ class PredictionLogger:
         topic: str = _TOPIC,
     ) -> None:
         self._topic = topic
-        self._producer = None
+        self._producer: Any = None
         self._lock = threading.Lock()
         self._init_producer(bootstrap_servers)
 

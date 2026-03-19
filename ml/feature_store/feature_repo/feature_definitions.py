@@ -17,6 +17,7 @@ from datetime import timedelta
 
 import pandas as pd
 from feast import Entity, FeatureView, Field, OnDemandFeatureView
+from feast.transformation.pandas_transformation import PandasTransformation
 from feast.types import Bool, Float32, Float64, Int64, String
 
 from ml.feature_store.feature_repo.data_sources import (
@@ -125,21 +126,7 @@ transaction_pattern_features = FeatureView(
 # Inputs: transaction request fields + user_transaction_features
 # ---------------------------------------------------------------------------
 
-@OnDemandFeatureView(
-    sources=[user_transaction_features, transaction_pattern_features],
-    schema=[
-        Field(name="z_score_amount", dtype=Float32),
-        Field(name="is_unusual_hour", dtype=Bool),
-        Field(name="velocity_score", dtype=Float32),
-    ],
-    description=(
-        "Real-time anomaly signals computed at inference time. "
-        "z_score: how many std devs the current amount is from the user's 30-day mean. "
-        "is_unusual_hour: transaction between 00:00-06:00 local time. "
-        "velocity_score: transactions_last_1h / avg daily velocity."
-    ),
-)
-def realtime_anomaly_features(inputs: pd.DataFrame) -> pd.DataFrame:
+def _compute_realtime_anomaly_features(inputs: pd.DataFrame) -> pd.DataFrame:
     """Compute on-demand anomaly signals from user features + request context."""
     df = pd.DataFrame()
 
@@ -158,3 +145,24 @@ def realtime_anomaly_features(inputs: pd.DataFrame) -> pd.DataFrame:
     df["velocity_score"] = (inputs["transactions_last_1h"].fillna(0) / normal_velocity).clip(0, 20).astype("float32")
 
     return df
+
+
+realtime_anomaly_features = OnDemandFeatureView(
+    name="realtime_anomaly_features",
+    sources=[user_transaction_features, transaction_pattern_features],
+    schema=[
+        Field(name="z_score_amount", dtype=Float32),
+        Field(name="is_unusual_hour", dtype=Bool),
+        Field(name="velocity_score", dtype=Float32),
+    ],
+    feature_transformation=PandasTransformation(
+        udf=_compute_realtime_anomaly_features,
+        udf_string="realtime_anomaly_features",
+    ),
+    description=(
+        "Real-time anomaly signals computed at inference time. "
+        "z_score: how many std devs the current amount is from the user's 30-day mean. "
+        "is_unusual_hour: transaction between 00:00-06:00 local time. "
+        "velocity_score: transactions_last_1h / avg daily velocity."
+    ),
+)

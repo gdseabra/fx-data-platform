@@ -12,7 +12,6 @@ Usage:
 import subprocess
 import sys
 from argparse import ArgumentParser
-from typing import Tuple
 
 import requests
 import structlog
@@ -37,10 +36,11 @@ class ServiceHealthCheck:
         Args:
             env: Target environment (dev, staging, prod).
             verbose: Print detailed output for each check.
+
         """
         self.env = env
         self.verbose = verbose
-        self.results: dict[str, Tuple[bool, str]] = {}
+        self.results: dict[str, tuple[bool, str]] = {}
         self.warnings: list[str] = []
 
     def _print_check(self, name: str, success: bool, message: str) -> None:
@@ -48,7 +48,7 @@ class ServiceHealthCheck:
         icon = f"{GREEN}✓{RESET}" if success else f"{RED}✗{RESET}"
         print(f"  {icon} {name}: {message}")
 
-    def check_postgres(self) -> Tuple[bool, str]:
+    def check_postgres(self) -> tuple[bool, str]:
         """Check PostgreSQL connectivity and basic query execution."""
         try:
             result = subprocess.run(
@@ -69,7 +69,7 @@ class ServiceHealthCheck:
         except Exception as e:
             return False, f"PostgreSQL error: {e}"
 
-    def check_redpanda(self) -> Tuple[bool, str]:
+    def check_redpanda(self) -> tuple[bool, str]:
         """Check Redpanda cluster health and topic existence."""
         try:
             response = requests.get("http://localhost:8080/api/health", timeout=5)
@@ -96,7 +96,7 @@ class ServiceHealthCheck:
         except Exception as e:
             return False, f"Redpanda error: {e}"
 
-    def check_redpanda_lag(self) -> Tuple[bool, str]:
+    def check_redpanda_lag(self) -> tuple[bool, str]:
         """Check consumer group lag in Redpanda."""
         try:
             result = subprocess.run(
@@ -137,7 +137,7 @@ class ServiceHealthCheck:
         except Exception as e:
             return True, f"Could not check lag: {e}"
 
-    def check_minio(self) -> Tuple[bool, str]:
+    def check_minio(self) -> tuple[bool, str]:
         """Check MinIO health and bucket accessibility."""
         try:
             response = requests.get("http://localhost:9000/minio/health/live", timeout=5)
@@ -170,7 +170,7 @@ class ServiceHealthCheck:
         except Exception as e:
             return False, f"MinIO error: {e}"
 
-    def check_airflow(self) -> Tuple[bool, str]:
+    def check_airflow(self) -> tuple[bool, str]:
         """Check Airflow health and DAG status."""
         try:
             response = requests.get("http://localhost:8090/health", timeout=10)
@@ -187,7 +187,7 @@ class ServiceHealthCheck:
         except Exception as e:
             return False, f"Airflow error: {e}"
 
-    def check_mlflow(self) -> Tuple[bool, str]:
+    def check_mlflow(self) -> tuple[bool, str]:
         """Check MLflow tracking server availability."""
         try:
             response = requests.get("http://localhost:5000/health", timeout=5)
@@ -201,11 +201,11 @@ class ServiceHealthCheck:
         except Exception as e:
             return False, f"MLflow error: {e}"
 
-    def check_feast(self) -> Tuple[bool, str]:
+    def check_feast(self) -> tuple[bool, str]:
         """Check Feast online store freshness."""
         try:
             from feast import FeatureStore
-            store = FeatureStore(repo_path="ml/feature_store/feature_repo")
+            FeatureStore(repo_path="ml/feature_store/feature_repo")
             # Try to get online features for a test entity
             return True, "Feast feature store accessible"
         except ImportError:
@@ -215,7 +215,7 @@ class ServiceHealthCheck:
                 return True, "Feast configured but not materialized (expected in dev)"
             return False, f"Feast error: {e}"
 
-    def check_inference_api(self) -> Tuple[bool, str]:
+    def check_inference_api(self) -> tuple[bool, str]:
         """Check Inference API health and model status."""
         try:
             response = requests.get("http://localhost:8000/health", timeout=5)
@@ -227,7 +227,7 @@ class ServiceHealthCheck:
             model_loaded = data.get("model_loaded", False)
 
             if status == "healthy" and model_loaded:
-                return True, f"Inference API healthy (model loaded)"
+                return True, "Inference API healthy (model loaded)"
             elif status == "healthy":
                 self.warnings.append("Inference API healthy but no model loaded")
                 return True, "Inference API healthy (no model loaded)"
@@ -236,7 +236,7 @@ class ServiceHealthCheck:
         except Exception as e:
             return False, f"Inference API error: {e}"
 
-    def check_prometheus(self) -> Tuple[bool, str]:
+    def check_prometheus(self) -> tuple[bool, str]:
         """Check Prometheus health and scrape targets."""
         try:
             response = requests.get("http://localhost:9090/-/healthy", timeout=5)
@@ -259,7 +259,7 @@ class ServiceHealthCheck:
         except Exception as e:
             return True, f"Prometheus not running (optional): {e}"
 
-    def run_all_checks(self) -> dict[str, Tuple[bool, str]]:
+    def run_all_checks(self) -> dict[str, tuple[bool, str]]:
         """Run all health checks and collect results."""
         print(f"\n{BOLD}{CYAN}FX Data Platform - Health Check{RESET}")
         print(f"Environment: {self.env}")
@@ -328,6 +328,7 @@ def main() -> int:
 
     Returns:
         0 if all services healthy, 1 if any failures, 2 if warnings only.
+
     """
     parser = ArgumentParser(description="FX Data Platform - Comprehensive Health Check")
     parser.add_argument(

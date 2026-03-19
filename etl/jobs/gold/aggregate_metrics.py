@@ -6,16 +6,30 @@
 
 import logging
 
-from pyspark.sql import SparkSession, DataFrame
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import (
-    col, count,
-    sum as spark_sum,
     avg as spark_avg,
-    min as spark_min,
-    max as spark_max,
-    stddev, percentile_approx,
-    to_date, year, month, dayofmonth, hour,
+)
+from pyspark.sql.functions import (
+    col,
+    count,
+    dayofmonth,
+    hour,
     lag,
+    month,
+    percentile_approx,
+    stddev,
+    to_date,
+    year,
+)
+from pyspark.sql.functions import (
+    max as spark_max,
+)
+from pyspark.sql.functions import (
+    min as spark_min,
+)
+from pyspark.sql.functions import (
+    sum as spark_sum,
 )
 from pyspark.sql.window import Window
 
@@ -179,6 +193,7 @@ class GoldAggregationJob:
 
 def main() -> None:
     import argparse
+
     from etl.common.spark_session import create_spark_session
 
     parser = argparse.ArgumentParser(description="FX Gold Aggregation Job")

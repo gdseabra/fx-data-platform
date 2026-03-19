@@ -4,7 +4,7 @@
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
@@ -20,7 +20,7 @@ class QualityCheck:
 
     name: str
     passed: bool
-    details: Dict[str, Any]
+    details: dict[str, Any]
 
     def __str__(self) -> str:
         status = "PASS" if self.passed else "FAIL"
@@ -35,17 +35,17 @@ class QualityReport:
     """Aggregated results from multiple quality checks."""
 
     table: str
-    checks: List[QualityCheck] = field(default_factory=list)
+    checks: list[QualityCheck] = field(default_factory=list)
 
     @property
     def passed(self) -> bool:
         return all(c.passed for c in self.checks)
 
     @property
-    def failed_checks(self) -> List[QualityCheck]:
+    def failed_checks(self) -> list[QualityCheck]:
         return [c for c in self.checks if not c.passed]
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         return {
             "table": self.table,
             "total_checks": len(self.checks),
@@ -143,6 +143,7 @@ class QualityChecks:
                 transactions_df, "user_id",
                 users_df,        "user_id",
             )
+
         """
         orphans = (
             df.select(fk_column)
@@ -192,6 +193,7 @@ class QualityChecks:
                 lambda d: QualityChecks.check_range(d, "amount_brl", 0, 1_000_000),
             ], table="fx_silver.transactions")
             report.raise_if_failed()
+
         """
         report = QualityReport(table=table)
         for check_fn in checks:

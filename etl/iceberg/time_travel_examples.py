@@ -9,9 +9,8 @@
 # Run: python -m etl.iceberg.time_travel_examples
 
 import logging
-from typing import Optional
 
-from pyspark.sql import SparkSession, DataFrame
+from pyspark.sql import DataFrame, SparkSession
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +33,7 @@ def query_at_snapshot(
     Example:
         df = query_at_snapshot(spark, "fx_silver.transactions", 5432109876)
         df.show()
+
     """
     logger.info(f"Querying {table} at snapshot {snapshot_id}")
     return spark.read.option("snapshot-id", snapshot_id).table(table)
@@ -52,6 +52,7 @@ def query_at_timestamp(
         df = query_at_timestamp(
             spark, "fx_silver.transactions", "2024-03-15T06:00:00"
         )
+
     """
     logger.info(f"Querying {table} as of {as_of_timestamp}")
     return (
@@ -78,6 +79,7 @@ def rollback_to_snapshot(
 
     Example:
         rollback_to_snapshot(spark, "fx_silver.transactions", 5432109876)
+
     """
     logger.info(f"Rolling back {table} to snapshot {snapshot_id}")
     spark.sql(f"""
@@ -98,6 +100,7 @@ def rollback_to_timestamp(
 
     Example:
         rollback_to_timestamp(spark, "fx_silver.transactions", "2024-03-15T00:00:00")
+
     """
     logger.info(f"Rolling back {table} to state at {as_of_timestamp}")
     spark.sql(f"""
@@ -115,7 +118,7 @@ def incremental_read(
     spark: SparkSession,
     table: str,
     start_snapshot_id: int,
-    end_snapshot_id: Optional[int] = None,
+    end_snapshot_id: int | None = None,
 ) -> DataFrame:
     """Read only the rows that changed between two snapshots.
 
@@ -133,6 +136,7 @@ def incremental_read(
     Example:
         df = incremental_read(spark, "fx_silver.transactions", 1111, 2222)
         df.show()
+
     """
     logger.info(
         f"Incremental read on {table}: "
@@ -182,7 +186,6 @@ def _to_millis(iso_ts: str) -> int:
 
 def run_demo(spark: SparkSession, table: str = "fx_silver.transactions") -> None:
     """Run all three time-travel patterns against *table*."""
-
     print(f"\n=== Iceberg Time Travel Demo: {table} ===\n")
 
     # List available snapshots
@@ -197,7 +200,6 @@ def run_demo(spark: SparkSession, table: str = "fx_silver.transactions") -> None
 
     latest_id = int(rows[0]["snapshot_id"])
     prev_id = int(rows[1]["snapshot_id"])
-    committed_at = str(rows[1]["committed_at"])
 
     # 1. Point-in-time query
     print(f"\n-- 1. State at snapshot {prev_id}:")

@@ -9,12 +9,11 @@ from ingestion.producer.config import ProducerConfig
 from ingestion.producer.exchange_rate_producer import ExchangeRateProducer
 from ingestion.producer.streaming_producer import StreamingProducer
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 
-@pytest.fixture()
+@pytest.fixture
 def config() -> ProducerConfig:
     return ProducerConfig(
         bootstrap_servers="localhost:9092",
@@ -22,13 +21,13 @@ def config() -> ProducerConfig:
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def producer(config: ProducerConfig) -> StreamingProducer:
     with patch("ingestion.producer.streaming_producer.Producer"):
         return StreamingProducer(config=config, enable_anomalies=False)
 
 
-@pytest.fixture()
+@pytest.fixture
 def rate_producer(config: ProducerConfig) -> ExchangeRateProducer:
     with patch("ingestion.producer.exchange_rate_producer.Producer"):
         return ExchangeRateProducer(config=config)

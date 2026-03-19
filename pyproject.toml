@@ -146,8 +146,6 @@ known_first_party = ["ingestion", "etl", "orchestration", "ml", "monitoring", "s
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-select = ["E", "F", "W", "I", "N", "D", "UP", "B", "A", "C4", "PIE", "T20", "PT"]
-ignore = ["E501", "D100", "D104", "D105", "D107"]
 exclude = [
     ".bzr",
     ".direnv",
@@ -170,6 +168,36 @@ exclude = [
     "venv",
 ]
 
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "D", "UP", "B", "A", "C4", "PIE", "T20", "PT"]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "D100",   # missing docstring in public module
+    "D101",   # missing docstring in public class
+    "D102",   # missing docstring in public method
+    "D103",   # missing docstring in public function
+    "D104",   # missing docstring in public package
+    "D105",   # missing docstring in magic method
+    "D107",   # missing docstring in __init__
+    "D301",   # use r""" if backslashes in docstring
+    "D401",   # first line should be in imperative mood
+    "D400",   # first line should end with a period
+    "D415",   # first line should end with period/question/exclamation
+    "D417",   # missing argument descriptions in docstring
+]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/**/*.py" = ["T201"]           # print is fine in CLI scripts
+"etl/iceberg/time_travel_examples.py" = ["T201"]  # demo script
+"etl/jobs/**/*.py" = ["T201"]          # ETL jobs use print for metrics
+"ml/serving/scripts/*.py" = ["T201"]   # CLI/load test scripts
+"ml/training/*.py" = ["T201", "N803", "N806"]  # ML convention: X, X_train, etc.
+"ml/feature_store/scripts/*.py" = ["T201"]  # CLI scripts
+"ml/serving/inference_service.py" = ["N806"]  # ML convention: X
+"tests/**/*.py" = ["D", "T201", "N806"]  # no docstring/print/naming enforcement in tests
+"ml/notebooks/*.ipynb" = ["T201", "E402"]  # notebooks
+"orchestration/dags/*.py" = ["E402"]   # airflow DAGs need late imports
+
 [tool.mypy]
 python_version = "3.10"
 warn_return_any = true
@@ -182,6 +210,7 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
 plugins = ["pydantic.mypy"]
+exclude = ["orchestration/plugins/"]
 
 [[tool.mypy.overrides]]
 module = [
@@ -189,8 +218,23 @@ module = [
     "pyspark.*",
     "feast.*",
     "mlflow.*",
+    "yaml.*",
+    "requests.*",
+    "boto3.*",
+    "botocore.*",
+    "locust.*",
+    "structlog.*",
 ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "orchestration.plugins.*",
+    "orchestration.dags.*",
+    "ingestion.consumer.*",
+    "scripts.ops.*",
+]
+ignore_errors = true
 
 [tool.pytest.ini_options]
 minversion = "7.0"

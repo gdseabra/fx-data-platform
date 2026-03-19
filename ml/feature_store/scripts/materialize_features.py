@@ -47,6 +47,7 @@ def run_materialization(
 
     Returns:
         Dictionary with status and materialised feature view names.
+
     """
     # Ensure timezone-aware datetimes
     if start_date.tzinfo is None:
